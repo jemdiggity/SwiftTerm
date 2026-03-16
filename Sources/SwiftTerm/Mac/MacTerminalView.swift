@@ -1130,7 +1130,13 @@ open class TerminalView: NSView, NSTextInputClient, NSUserInterfaceValidations, 
               let scalar = chars.unicodeScalars.first else {
             return nil
         }
-        if event.modifierFlags.contains(.numericPad) {
+        // macOS sets .numericPad for regular arrow keys (kVK_LeftArrow 0x7B
+        // through kVK_UpArrow 0x7E), not just actual numeric keypad keys.
+        // Only map to keypad variants when the hardware keyCode is NOT a
+        // standard arrow key, so regular arrows produce .left/.right/.up/.down
+        // and encode as standard CSI sequences instead of CSI-u keypad codes.
+        let isStandardArrowKeyCode = (0x7B...0x7E).contains(event.keyCode)
+        if event.modifierFlags.contains(.numericPad), !isStandardArrowKeyCode {
             switch Int(scalar.value) {
             case NSUpArrowFunctionKey:
                 return .keypadUp
